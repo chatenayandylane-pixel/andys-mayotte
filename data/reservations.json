@@ -1,0 +1,62 @@
+[
+  {
+    "id": "AND-1774256699354",
+    "nom": "test",
+    "prenom": "test",
+    "telephone": "+262 639077161",
+    "email": "andylanechatenay976@gmail.com",
+    "date": "2026-03-25",
+    "creneau": "12:00 – 12:30",
+    "note": "",
+    "articles": [
+      {
+        "id": 1,
+        "name": "Eau minérale (pack 6×1,5L)",
+        "description": "Pack de 6 bouteilles d'eau minérale naturelle 1,5L. Idéal pour la restauration et la revente.",
+        "price": 3.5,
+        "unit": "pack",
+        "category": "Boissons",
+        "emoji": "💧",
+        "image": "https://images.unsplash.com/photo-1564419320461-6870880221ad?w=600&h=400&fit=crop&q=80",
+        "available": true,
+        "stock": 200,
+        "quantity": 6
+      }
+    ],
+    "totalIndicatif": 21,
+    "createdAt": "2026-03-23T09:04:59.354Z",
+    "invoiceId": "FAC-2026-0001",
+    "status": "validee",
+    "validatedAt": "2026-03-23T09:44:04.176Z"
+  },
+  {
+    "id": "AND-1774345941088",
+    "nom": "test",
+    "prenom": "test",
+    "telephone": "+33672758478",
+    "email": "andylanechatenay976@gmail.com",
+    "date": "2026-03-24",
+    "creneau": "16:00 – 16:30",
+    "note": "",
+    "articles": [
+      {
+        "id": 1,
+        "name": "Eau minérale (pack 6×1,5L)",
+        "description": "Pack de 6 bouteilles d'eau minérale naturelle 1,5L. Idéal pour la restauration et la revente.",
+        "price": 3.5,
+        "unit": "pack",
+        "category": "Boissons",
+        "emoji": "💧",
+        "image": "https://images.unsplash.com/photo-1564419320461-6870880221ad?w=600&h=400&fit=crop&q=80",
+        "available": true,
+        "stock": 194,
+        "quantity": 5
+      }
+    ],
+    "totalIndicatif": 17.5,
+    "createdAt": "2026-03-24T09:52:21.088Z",
+    "invoiceId": "FAC-2026-0002",
+    "status": "validee",
+    "validatedAt": "2026-03-24T10:00:29.823Z"
+  }
+]
