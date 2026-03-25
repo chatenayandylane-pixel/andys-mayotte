@@ -140,7 +140,7 @@ export default async function FacturePage({ params }) {
                       <td className="px-4 py-3 text-center text-stone-600">{a.quantity}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{parseFloat(a.price).toFixed(2)} €</td>
                       <td className="px-4 py-3 text-right font-semibold text-primary-800">
-                        {(a.price * a.quantity).toFixed(2)} €
+                        {(parseFloat(a.price) * a.quantity).toFixed(2)} €
                       </td>
                     </tr>
                   ))}

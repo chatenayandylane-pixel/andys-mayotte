@@ -68,7 +68,7 @@ export default function PanierPage() {
                 </p>
                 <p className="text-xs text-stone-500 mt-0.5">{item.unit}</p>
                 <p className="text-primary-600 font-bold mt-1">
-                  {(item.price * item.quantity).toFixed(2)} €
+                  {(parseFloat(item.price) * item.quantity).toFixed(2)} €
                 </p>
               </div>
 
@@ -115,7 +115,7 @@ export default function PanierPage() {
                     {item.name} ×{item.quantity}
                   </span>
                   <span className="font-medium text-primary-800 shrink-0">
-                    {(item.price * item.quantity).toFixed(2)} €
+                    {(parseFloat(item.price) * item.quantity).toFixed(2)} €
                   </span>
                 </div>
               ))}

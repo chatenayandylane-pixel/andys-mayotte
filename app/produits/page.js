@@ -32,7 +32,7 @@ export default function ProduitsPage() {
   const filtered = useMemo(() => {
     return products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                            p.description.toLowerCase().includes(search.toLowerCase())
+                            (p.description || '').toLowerCase().includes(search.toLowerCase())
       const matchesCat   = selectedCat === 'Tous' || p.category === selectedCat
       const matchesAvail = !showAvailableOnly || p.available
       return matchesSearch && matchesCat && matchesAvail

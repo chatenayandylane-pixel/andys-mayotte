@@ -326,7 +326,7 @@ export default function ReservationPage() {
                       {item.emoji} {item.name} ×{item.quantity}
                     </span>
                     <span className="font-medium shrink-0">
-                      {(item.price * item.quantity).toFixed(2)} €
+                      {(parseFloat(item.price) * item.quantity).toFixed(2)} €
                     </span>
                   </div>
                 ))}

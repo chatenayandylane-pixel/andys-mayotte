@@ -116,7 +116,7 @@ export default function ConfirmationPage() {
                 <p className="text-xs text-stone-500">{item.unit} × {item.quantity}</p>
               </div>
               <span className="font-semibold text-primary-800 text-sm">
-                {(item.price * item.quantity).toFixed(2)} €
+                {(parseFloat(item.price) * item.quantity).toFixed(2)} €
               </span>
             </div>
           ))}
@@ -124,7 +124,7 @@ export default function ConfirmationPage() {
         <div className="border-t border-stone-100 pt-3 flex justify-between">
           <span className="font-semibold text-primary-800">Total indicatif</span>
           <span className="font-extrabold text-primary-600 text-lg">
-            {reservation.totalIndicatif?.toFixed(2)} €
+            {parseFloat(reservation.totalIndicatif)?.toFixed(2)} €
           </span>
         </div>
 

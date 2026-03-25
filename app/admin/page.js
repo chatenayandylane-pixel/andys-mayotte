@@ -527,7 +527,7 @@ export default function AdminPage() {
               </div>
               <div className="bg-primary-50 border border-primary-100 rounded-xl p-4 col-span-2 sm:col-span-1">
                 <p className="text-2xl font-bold text-primary-700">
-                  {invoices.filter(i => i.status === 'payee').reduce((s, i) => s + (i.total || 0), 0).toFixed(2)} €
+                  {invoices.filter(i => i.status === 'payee').reduce((s, i) => s + parseFloat(i.total || 0), 0).toFixed(2)} €
                 </p>
                 <p className="text-xs text-primary-500 font-medium">Total encaissé</p>
               </div>

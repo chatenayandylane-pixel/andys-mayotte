@@ -85,7 +85,7 @@ export default function ProductCard({ product }) {
         <div className="flex items-baseline justify-between mb-3">
           <div>
             <span className="text-primary-600 font-bold text-xl">
-              {product.price.toFixed(2)} €
+              {parseFloat(product.price).toFixed(2)} €
             </span>
             <span className="text-xs text-stone-400 font-normal ml-1.5">/ {product.unit}</span>
           </div>

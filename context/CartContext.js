@@ -25,7 +25,7 @@ const cartReducer = (state, action) => {
         )
       }
       // Nouveau produit : on l'ajoute avec quantité 1
-      return [...state, { ...action.payload, quantity: 1 }]
+      return [...state, { ...action.payload, price: parseFloat(action.payload.price), quantity: 1 }]
     }
 
     case 'REMOVE_ITEM':
@@ -74,7 +74,7 @@ export function CartProvider({ children }) {
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   // Prix total indicatif
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const totalPrice = cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0)
 
   const addItem    = (product)         => dispatch({ type: 'ADD_ITEM', payload: product })
   const removeItem = (id)              => dispatch({ type: 'REMOVE_ITEM', payload: id })
