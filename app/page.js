@@ -52,7 +52,7 @@ export default async function HomePage() {
           background: 'radial-gradient(ellipse 65% 55% at 3% 90%, rgba(201,161,74,0.22) 0%, transparent 60%), radial-gradient(ellipse 40% 45% at 97% 5%, rgba(201,161,74,0.12) 0%, transparent 55%)'
         }} />
         {/* Dégradé bas → blanc */}
-        <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-white to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-16 md:h-36 bg-gradient-to-t from-white to-transparent" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 pt-10 pb-16 md:py-28 w-full">
 
@@ -66,7 +66,7 @@ export default async function HomePage() {
                 Poroani · Mayotte (976)
               </div>
 
-              <h1 className="anim-fade-up font-serif text-[2.6rem] leading-[1.05] md:text-6xl lg:text-7xl font-semibold text-white mb-5">
+              <h1 className="anim-fade-up font-serif text-[1.85rem] leading-[1.1] md:text-6xl lg:text-7xl font-semibold text-white mb-5" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.55)' }}>
                 Chez Andy&apos;s<br />
                 <span className="text-primary-400">Grossiste</span><br />
                 <span className="text-primary-400">alimentaire</span>
@@ -105,7 +105,7 @@ export default async function HomePage() {
                 {[
                   { icon: <Clock size={14} />,    text: todayLabel },
                   { icon: <MapPin size={14} />,   text: '3 rue Mairie Annexe, Poroani\nQuartier 100 Villas — 97620 Chirongui' },
-                  { icon: <Phone size={14} />,    text: '+262 672 75 84 78' },
+                  { icon: <Phone size={14} />,    text: '+33 672 75 84 78' },
                   { icon: <CreditCard size={14} />, text: 'Paiement sur place' },
                   { icon: <Store size={14} />,    text: 'Retrait en magasin' },
                 ].map((item, i) => (
@@ -119,7 +119,7 @@ export default async function HomePage() {
           </div>
 
           {/* ── Info strip — visible seulement sur mobile ── */}
-          <div className="anim-fade-up-3 mt-6 rounded-2xl overflow-hidden border border-white/15 md:hidden" style={{ background: 'rgba(15,12,10,0.82)', backdropFilter: 'blur(16px)' }}>
+          <div className="anim-fade-up-3 mt-6 rounded-2xl overflow-hidden border border-white/15 md:hidden" style={{ background: 'rgba(15,12,10,0.96)' }}>
             {/* En-tête */}
             <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -129,11 +129,11 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 gap-px bg-white/8">
               {[
                 { icon: <Clock size={14} />,      text: todayHours ? (todayHours.open ? `Ouvert\n${fmtHours(todayHours)}` : 'Fermé\naujourd\'hui') : 'Lun – Sam\n8h00 – 18h00' },
-                { icon: <Phone size={14} />,      text: '+262 672\n75 84 78' },
+                { icon: <Phone size={14} />,      text: '+33 672\n75 84 78' },
                 { icon: <MapPin size={14} />,     text: 'Poroani\n97620 Chirongui' },
                 { icon: <CreditCard size={14} />, text: 'Paiement\nsur place' },
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ background: 'rgba(15,12,10,0.82)' }}>
+                <div key={i} className="flex items-center gap-3 px-4 py-3" style={{ background: 'rgba(15,12,10,0.96)' }}>
                   <span className="text-primary-500 shrink-0">{item.icon}</span>
                   <span className="text-stone-200 text-xs font-medium leading-snug whitespace-pre-line">{item.text}</span>
                 </div>
@@ -350,7 +350,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             {[
               { icon: <MapPin size={22} />, title: 'Adresse', lines: ['3 rue Mairie Annexe, Poroani', 'Quartier 100 Villas — 97620 Chirongui'] },
-              { icon: <Phone size={22} />, title: 'Téléphone', lines: ['+262 672 75 84 78'] },
+              { icon: <Phone size={22} />, title: 'Téléphone', lines: ['+33 672 75 84 78'] },
               { icon: <Mail size={22} />, title: 'Email', lines: ['contact@chezandys.com'] },
             ].map(item => (
               <div key={item.title} className="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-0 p-5 sm:p-8 rounded-2xl bg-stone-50 border border-stone-100 hover:border-primary-200 hover:shadow-card transition-all">

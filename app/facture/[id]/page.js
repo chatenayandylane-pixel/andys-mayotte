@@ -66,7 +66,7 @@ export default async function FacturePage({ params }) {
                 <p className="text-sm text-stone-500 mt-0.5">Grossiste alimentaire</p>
                 <p className="text-sm text-stone-500">3 rue Mairie Annexe, Poroani</p>
                 <p className="text-sm text-stone-500">Quartier 100 Villas — 97620 Chirongui</p>
-                <p className="text-sm text-stone-500">+262 672 75 84 78</p>
+                <p className="text-sm text-stone-500">+33 672 75 84 78</p>
                 <p className="text-sm text-stone-500">contact@chezandys.com</p>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default async function FacturePage({ params }) {
           {/* ── Mentions légales — bas de facture ── */}
           <div className="border-t border-stone-100 px-8 py-4 bg-stone-50">
             <p className="text-center text-stone-400" style={{ fontSize: '10px', lineHeight: '1.8' }}>
-              Andy&apos;s Mayotte — 3 rue Mairie Annexe, Poroani, Quartier 100 Villas — 97620 Chirongui — +262 672 75 84 78 — contact@chezandys.com<br />
+              Andy&apos;s Mayotte — 3 rue Mairie Annexe, Poroani, Quartier 100 Villas — 97620 Chirongui — +33 672 75 84 78 — contact@chezandys.com<br />
               SAS — SIREN&nbsp;938&nbsp;321&nbsp;536 — Forme juridique&nbsp;: Société par Actions Simplifiée<br />
               N°&nbsp;TVA&nbsp;intracommunautaire&nbsp;: FR79938321536 — RCS&nbsp;938&nbsp;321&nbsp;536&nbsp;R.C.S.&nbsp;Mamoudzou
             </p>
