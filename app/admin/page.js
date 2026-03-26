@@ -272,6 +272,36 @@ export default function AdminPage() {
     }
   }
 
+  // ── Annuler / supprimer une réservation ──────────────────────────────────────
+  const handleDeleteReservation = async (reservationId) => {
+    if (!confirm('Annuler et supprimer cette commande ? Cette action est irréversible.')) return
+    try {
+      const res = await fetch(`/api/reservations/${reservationId}`, { method: 'DELETE' })
+      if (!res.ok) { notify('Erreur lors de la suppression'); return }
+      loadData()
+      notify('Commande supprimée ✓')
+    } catch {
+      notify('Erreur lors de la suppression')
+    }
+  }
+
+  // ── Supprimer une facture ─────────────────────────────────────────────────────
+  const handleDeleteInvoice = async (invoiceId) => {
+    if (!confirm('Supprimer cette facture ? Cette action est irréversible.')) return
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: invoiceId }),
+      })
+      if (!res.ok) { notify('Erreur lors de la suppression'); return }
+      loadData()
+      notify('Facture supprimée ✓')
+    } catch {
+      notify('Erreur lors de la suppression')
+    }
+  }
+
   // ── Données clients (groupées par email) ────────────────────────────────────
   const clientsMap = reservations.reduce((acc, r) => {
     const key = r.email || `${r.nom}-${r.prenom}`
@@ -498,6 +528,12 @@ export default function AdminPage() {
                         <CheckCircle size={13} /> Payé
                       </span>
                     )}
+                    <button
+                      onClick={() => handleDeleteReservation(r.id)}
+                      className="flex items-center gap-1.5 text-xs font-medium text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-xl transition-colors border border-red-100"
+                    >
+                      <Trash2 size={13} /> Annuler
+                    </button>
                   </div>
                 </div>
               </div>
@@ -572,14 +608,22 @@ export default function AdminPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <a
-                          href={`/facture/${inv.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 bg-primary-50 hover:bg-primary-100 px-2.5 py-1.5 rounded-lg transition-colors border border-primary-100"
-                        >
-                          <FileText size={12} /> Voir
-                        </a>
+                        <div className="flex items-center justify-end gap-2">
+                          <a
+                            href={`/facture/${inv.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 bg-primary-50 hover:bg-primary-100 px-2.5 py-1.5 rounded-lg transition-colors border border-primary-100"
+                          >
+                            <FileText size={12} /> Voir
+                          </a>
+                          <button
+                            onClick={() => handleDeleteInvoice(inv.id)}
+                            className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition-colors border border-red-100"
+                          >
+                            <Trash2 size={12} /> Supprimer
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -737,9 +781,9 @@ export default function AdminPage() {
                     ))}
                   </div>
                   {imgMode === 'url' && (
-                    <input type="url" value={editProduct.image}
+                    <input type="text" value={editProduct.image}
                       onChange={e => setEditProduct(prev => ({ ...prev, image: e.target.value }))}
-                      placeholder="https://…"
+                      placeholder="https://… ou /uploads/fichier.jpg"
                       className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   )}

@@ -56,9 +56,14 @@ export default function PanierPage() {
               key={item.id}
               className="bg-white rounded-2xl shadow-card border border-stone-100 p-4 flex items-center gap-4"
             >
-              {/* Emoji produit */}
-              <div className="w-16 h-16 bg-gradient-to-br from-primary-50 to-stone-100 rounded-xl flex items-center justify-center text-3xl shrink-0">
-                {item.emoji}
+              {/* Image / Emoji produit */}
+              <div className="w-16 h-16 bg-gradient-to-br from-primary-50 to-stone-100 rounded-xl flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+                {item.image ? (
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} />
+                ) : null}
+                <span className={`text-3xl ${item.image ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}>
+                  {item.emoji?.trim() || '📦'}
+                </span>
               </div>
 
               {/* Infos */}

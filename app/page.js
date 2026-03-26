@@ -105,7 +105,7 @@ export default async function HomePage() {
                 {[
                   { icon: <Clock size={14} />,    text: todayLabel },
                   { icon: <MapPin size={14} />,   text: '3 rue Mairie Annexe, Poroani\nQuartier 100 Villas — 97620 Chirongui' },
-                  { icon: <Phone size={14} />,    text: '+262 639 07 71 61' },
+                  { icon: <Phone size={14} />,    text: '+262 672 75 84 78' },
                   { icon: <CreditCard size={14} />, text: 'Paiement sur place' },
                   { icon: <Store size={14} />,    text: 'Retrait en magasin' },
                 ].map((item, i) => (
@@ -129,7 +129,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 gap-px bg-white/8">
               {[
                 { icon: <Clock size={14} />,      text: todayHours ? (todayHours.open ? `Ouvert\n${fmtHours(todayHours)}` : 'Fermé\naujourd\'hui') : 'Lun – Sam\n8h00 – 18h00' },
-                { icon: <Phone size={14} />,      text: '+262 639\n07 71 61' },
+                { icon: <Phone size={14} />,      text: '+262 672\n75 84 78' },
                 { icon: <MapPin size={14} />,     text: 'Poroani\n97620 Chirongui' },
                 { icon: <CreditCard size={14} />, text: 'Paiement\nsur place' },
               ].map((item, i) => (
@@ -350,7 +350,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             {[
               { icon: <MapPin size={22} />, title: 'Adresse', lines: ['3 rue Mairie Annexe, Poroani', 'Quartier 100 Villas — 97620 Chirongui'] },
-              { icon: <Phone size={22} />, title: 'Téléphone', lines: ['+262 639 07 71 61'] },
+              { icon: <Phone size={22} />, title: 'Téléphone', lines: ['+262 672 75 84 78'] },
               { icon: <Mail size={22} />, title: 'Email', lines: ['contact@chezandys.com'] },
             ].map(item => (
               <div key={item.title} className="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-0 p-5 sm:p-8 rounded-2xl bg-stone-50 border border-stone-100 hover:border-primary-200 hover:shadow-card transition-all">

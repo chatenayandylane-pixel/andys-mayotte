@@ -2,6 +2,18 @@ import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { sendInvoiceEmail } from '@/lib/mailer'
 
+export async function DELETE(request, { params }) {
+  try {
+    const { id } = params
+    await sql`DELETE FROM invoices WHERE reservation_id = ${id}`
+    await sql`DELETE FROM reservations WHERE id = ${id}`
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('Erreur suppression réservation:', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}
+
 export async function PATCH(request, { params }) {
   try {
     const { id } = params
