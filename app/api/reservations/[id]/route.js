@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { sendInvoiceEmail } from '@/lib/mailer'
+import { verifyAdminAuth } from '@/lib/auth'
 
 // ── PATCH — Valider le paiement + déduire le stock ────────────────────────────
 export async function PATCH(request, { params }) {
+  if (!(await verifyAdminAuth())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
   try {
     const { id } = params
 
-    // Récupérer la réservation
     const rows = await sql`
       SELECT
         id, status, articles,
@@ -27,12 +30,10 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Réservation déjà validée' }, { status: 409 })
     }
 
-    // Désérialiser les articles (stockés en JSON dans la DB)
     const articles = Array.isArray(reservation.articles)
       ? reservation.articles
       : JSON.parse(reservation.articles || '[]')
 
-    // ── Déduire le stock pour chaque article ──────────────────────────────────
     for (const article of articles) {
       const qty = parseInt(article.quantity) || 0
       if (qty <= 0) continue
@@ -45,14 +46,12 @@ export async function PATCH(request, { params }) {
       `
     }
 
-    // ── Marquer la réservation comme validée ──────────────────────────────────
     await sql`
       UPDATE reservations
       SET status = 'validee', validated_at = NOW()
       WHERE id = ${id}
     `
 
-    // ── Marquer la facture comme payée ────────────────────────────────────────
     if (reservation.invoiceId) {
       await sql`
         UPDATE invoices
@@ -61,7 +60,6 @@ export async function PATCH(request, { params }) {
       `
     }
 
-    // ── Envoyer la facture par email (non bloquant) ───────────────────────────
     if (reservation.email && reservation.invoiceId) {
       sendInvoiceEmail({
         to:              reservation.email,
@@ -82,8 +80,10 @@ export async function PATCH(request, { params }) {
 }
 
 // ── DELETE — Annuler une réservation ─────────────────────────────────────────
-// Si la réservation était déjà validée, le stock est restauré.
 export async function DELETE(request, { params }) {
+  if (!(await verifyAdminAuth())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
   try {
     const { id } = params
 
@@ -98,7 +98,6 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Réservation introuvable' }, { status: 404 })
     }
 
-    // Restaurer le stock si la réservation était validée
     if (reservation.status === 'validee') {
       const articles = Array.isArray(reservation.articles)
         ? reservation.articles
@@ -115,7 +114,6 @@ export async function DELETE(request, { params }) {
       }
     }
 
-    // Supprimer la réservation et la facture associée
     await sql`DELETE FROM reservations WHERE id = ${id}`
     if (reservation.invoiceId) {
       await sql`DELETE FROM invoices WHERE id = ${reservation.invoiceId}`

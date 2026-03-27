@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
+import { verifyAdminAuth } from '@/lib/auth'
 
 export async function GET() {
   const rows = await sql`SELECT * FROM products ORDER BY id`
@@ -7,8 +8,14 @@ export async function GET() {
 }
 
 export async function PUT(request) {
+  if (!(await verifyAdminAuth())) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
   try {
     const products = await request.json()
+    if (!Array.isArray(products)) {
+      return NextResponse.json({ error: 'Format invalide' }, { status: 400 })
+    }
     await sql`DELETE FROM products`
     for (const p of products) {
       await sql`
