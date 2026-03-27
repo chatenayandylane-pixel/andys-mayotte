@@ -7,6 +7,7 @@ import {
   Users, Search, AlertTriangle, FileText, ExternalLink, RefreshCw,
   Star, Tag, CalendarDays, Sparkles,
 } from 'lucide-react'
+import { ReservationRowSkeleton, ProductTableSkeleton } from '@/components/Skeleton'
 
 const EMPTY_PRODUCT = {
   id: null, name: '', description: '', price: '', unit: '',
@@ -97,32 +98,25 @@ export default function AdminPage() {
   // Recherche produits (admin)
   const [productSearch, setProductSearch] = useState('')
 
+  // État de chargement initial des données
+  const [dataLoading, setDataLoading] = useState(true)
+
   // ── Chargement des données ──────────────────────────────────────────────────
-  const loadData = () => {
-    fetch('/api/products')
-      .then(r => r.json())
-      .then(setProducts)
-      .catch(() => {})
-
-    fetch('/api/reservations')
-      .then(r => r.json())
-      .then(setReservations)
-      .catch(() => setReservations([]))
-
-    fetch('/api/invoices')
-      .then(r => r.json())
-      .then(setInvoices)
-      .catch(() => setInvoices([]))
-
-    fetch('/api/hours')
-      .then(r => r.json())
-      .then(setHours)
-      .catch(() => {})
-
-    fetch('/api/categories')
-      .then(r => r.json())
-      .then(setCategories)
-      .catch(() => {})
+  const loadData = (showLoader = false) => {
+    if (showLoader) setDataLoading(true)
+    Promise.all([
+      fetch('/api/products').then(r => r.json()).catch(() => []),
+      fetch('/api/reservations').then(r => r.json()).catch(() => []),
+      fetch('/api/invoices').then(r => r.json()).catch(() => []),
+      fetch('/api/hours').then(r => r.json()).catch(() => []),
+      fetch('/api/categories').then(r => r.json()).catch(() => []),
+    ]).then(([prods, reservs, invs, hrs, cats]) => {
+      setProducts(prods)
+      setReservations(reservs)
+      setInvoices(invs)
+      setHours(hrs)
+      setCategories(cats)
+    }).finally(() => setDataLoading(false))
   }
 
   // Vérifier la session existante au chargement
@@ -133,7 +127,7 @@ export default function AdminPage() {
       .catch(() => setAuthed(false))
   }, [])
 
-  useEffect(() => { if (authed === true) loadData() }, [authed])
+  useEffect(() => { if (authed === true) loadData(true) }, [authed])
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   const handleLogin = async e => {
@@ -446,7 +440,13 @@ export default function AdminPage() {
 
       {/* ═══ Onglet Commandes ════════════════════════════════════════════════════ */}
       {tab === 'reservations' && (
-        reservations.length === 0 ? (
+        dataLoading ? (
+          <div className="space-y-4">
+            <ReservationRowSkeleton />
+            <ReservationRowSkeleton />
+            <ReservationRowSkeleton />
+          </div>
+        ) : reservations.length === 0 ? (
           <div className="text-center py-20 text-stone-300">
             <p className="text-5xl mb-4">📋</p>
             <p className="font-serif text-xl text-stone-400">Aucune commande pour le moment</p>
@@ -636,6 +636,9 @@ export default function AdminPage() {
 
       {/* ═══ Onglet Produits ════════════════════════════════════════════════════ */}
       {tab === 'products' && (
+        dataLoading ? (
+          <ProductTableSkeleton rows={6} />
+        ) : (
         <>
           <div className="flex flex-col sm:flex-row gap-3 mb-4">
             {/* Barre de recherche */}
@@ -854,8 +857,9 @@ export default function AdminPage() {
               <tbody className="divide-y divide-stone-50">
                 {products
                   .filter(p => !productSearch.trim() ||
-                    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-                    p.category.toLowerCase().includes(productSearch.toLowerCase())
+                    (p.name || '').toLowerCase().includes(productSearch.toLowerCase()) ||
+                    (p.category || '').toLowerCase().includes(productSearch.toLowerCase()) ||
+                    (p.description || '').toLowerCase().includes(productSearch.toLowerCase())
                   )
                   .map(p => (
                   <tr key={p.id} className={`hover:bg-stone-50 transition-colors ${(!p.available || p.stock === 0) ? 'opacity-60' : ''}`}>
@@ -927,8 +931,9 @@ export default function AdminPage() {
               </tbody>
             </table>
             {productSearch && products.filter(p =>
-              p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-              p.category.toLowerCase().includes(productSearch.toLowerCase())
+              (p.name || '').toLowerCase().includes(productSearch.toLowerCase()) ||
+              (p.category || '').toLowerCase().includes(productSearch.toLowerCase()) ||
+              (p.description || '').toLowerCase().includes(productSearch.toLowerCase())
             ).length === 0 && (
               <div className="text-center py-10 text-stone-400 text-sm">
                 Aucun produit trouvé pour &quot;{productSearch}&quot;
@@ -936,6 +941,7 @@ export default function AdminPage() {
             )}
           </div>
         </>
+        )
       )}
 
       {/* ═══ Onglet Clients ═════════════════════════════════════════════════════ */}

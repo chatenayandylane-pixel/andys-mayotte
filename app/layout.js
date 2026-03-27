@@ -2,6 +2,7 @@ import './globals.css'
 import { CartProvider } from '@/context/CartContext'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import RevealObserver from '@/components/RevealObserver'
 
 export const metadata = {
   title: "Chez Andy's — Grossiste alimentaire à Mayotte",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }) {
           </main>
           <Footer />
         </CartProvider>
+        <RevealObserver />
       </body>
     </html>
   )
