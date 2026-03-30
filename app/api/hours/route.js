@@ -6,9 +6,14 @@ const DAY_ORDER = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Diman
 const TIME_RE   = /^\d{2}:\d{2}$/
 
 export async function GET() {
-  const rows = await sql`SELECT day, open, open_time AS "openTime", close_time AS "closeTime" FROM hours`
-  rows.sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day))
-  return NextResponse.json(rows)
+  try {
+    const rows = await sql`SELECT day, open, open_time AS "openTime", close_time AS "closeTime" FROM hours`
+    rows.sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day))
+    return NextResponse.json(rows)
+  } catch (err) {
+    console.error('GET /api/hours:', err)
+    return NextResponse.json([], { status: 200 })
+  }
 }
 
 export async function PUT(request) {

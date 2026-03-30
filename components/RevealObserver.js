@@ -1,30 +1,54 @@
 'use client'
 
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
-// Active les animations .reveal / .reveal-left / .reveal-right / .reveal-scale
-// au passage dans le viewport via IntersectionObserver.
+const SELECTORS = '.reveal, .reveal-left, .reveal-right, .reveal-scale'
+
 export default function RevealObserver() {
+  const pathname = usePathname()
+
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    // IntersectionObserver : rend visible chaque élément quand il entre dans le viewport
+    const io = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             entry.target.classList.add('visible')
-            observer.unobserve(entry.target)
+            io.unobserve(entry.target)
           }
         })
       },
-      { threshold: 0.10, rootMargin: '0px 0px -32px 0px' }
+      { threshold: 0.08, rootMargin: '0px 0px -24px 0px' }
     )
 
-    const els = document.querySelectorAll(
-      '.reveal, .reveal-left, .reveal-right, .reveal-scale'
-    )
-    els.forEach(el => observer.observe(el))
+    // Observe un élément : retire d'abord .visible pour réinitialiser l'animation
+    const observe = (el) => {
+      el.classList.remove('visible')
+      io.observe(el)
+    }
 
-    return () => observer.disconnect()
-  }, [])
+    // Observe tous les éléments déjà présents dans le DOM
+    document.querySelectorAll(SELECTORS).forEach(observe)
+
+    // MutationObserver : observe les nouveaux éléments ajoutés au DOM (streaming SSR)
+    const mo = new MutationObserver((mutations) => {
+      mutations.forEach(({ addedNodes }) => {
+        addedNodes.forEach(node => {
+          if (node.nodeType !== Node.ELEMENT_NODE) return
+          if (node.matches?.(SELECTORS)) observe(node)
+          node.querySelectorAll?.(SELECTORS).forEach(observe)
+        })
+      })
+    })
+
+    mo.observe(document.body, { childList: true, subtree: true })
+
+    return () => {
+      io.disconnect()
+      mo.disconnect()
+    }
+  }, [pathname])
 
   return null
 }

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { sql } from '@/lib/db'
 import ProductCard from '@/components/ProductCard'
+import ContactForm from '@/components/ContactForm'
 import {
   ShoppingBag, CalendarCheck, Store, CreditCard,
   MapPin, Phone, Mail, Clock, ArrowRight, CheckCircle
@@ -393,68 +394,92 @@ export default async function HomePage() {
           CONTACT
       ══════════════════════════════════════════════════════════════ */}
       <section id="contact" className="bg-white py-20 md:py-28 border-t border-stone-100">
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4">
+
+          {/* Titre */}
           <div className="text-center mb-12 md:mb-16">
-            <span className="section-label center">Nous trouver</span>
+            <span className="section-label center">Nous contacter</span>
             <h2
               className="font-serif font-semibold text-primary-800 leading-tight"
               style={{ fontSize: 'clamp(2rem, 5vw, 3.25rem)' }}
             >
-              Contact
+              Contact & Infos
             </h2>
+            <p className="mt-4 text-stone-500 text-sm max-w-md mx-auto leading-relaxed">
+              Une question sur une commande, un produit, ou autre ? Envoyez-nous un message, nous répondons rapidement.
+            </p>
           </div>
 
-          {/* Cards contact */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {[
-              {
-                icon: <MapPin size={20} />,
-                title: 'Adresse',
-                lines: ['3 rue Mairie Annexe, Poroani', 'Quartier 100 Villas — 97620 Chirongui'],
-              },
-              {
-                icon: <Phone size={20} />,
-                title: 'Téléphone',
-                lines: ['+33 672 75 84 78'],
-              },
-              {
-                icon: <Mail size={20} />,
-                title: 'Email',
-                lines: ['contact@chezandys.com'],
-              },
-            ].map((item, i) => (
-              <div key={item.title} className={`reveal delay-${i + 1} flex sm:flex-col items-center sm:text-center gap-4 sm:gap-0 p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-card`}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+
+            {/* ── Colonne gauche : infos + horaires ─────────────────── */}
+            <div className="space-y-4">
+
+              {/* Cards infos */}
+              {[
+                {
+                  icon: <MapPin size={18} />,
+                  title: 'Adresse',
+                  content: <>3 rue Mairie Annexe, Poroani<br />Quartier 100 Villas — 97620 Chirongui</>,
+                },
+                {
+                  icon: <Phone size={18} />,
+                  title: 'Téléphone',
+                  content: <a href="tel:+33672758478" className="hover:text-primary-700 transition-colors">+33 672 75 84 78</a>,
+                },
+                {
+                  icon: <Mail size={18} />,
+                  title: 'Email',
+                  content: <a href="mailto:contact@chezandys.com" className="hover:text-primary-700 transition-colors">contact@chezandys.com</a>,
+                },
+              ].map((item, i) => (
+                <div key={item.title} className={`reveal delay-${i + 1} flex items-start gap-4 p-5 rounded-2xl border`}
+                     style={{ background: '#F9F5EE', borderColor: 'rgba(201,161,74,0.18)' }}>
+                  <div className="w-10 h-10 rounded-xl bg-primary-900 text-primary-500 flex items-center justify-center shrink-0 mt-0.5">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{item.title}</p>
+                    <p className="text-sm text-stone-700 leading-relaxed">{item.content}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Horaires */}
+              <div className="reveal delay-4 rounded-2xl p-5 border"
                    style={{ background: '#F9F5EE', borderColor: 'rgba(201,161,74,0.18)' }}>
-                <div className="w-12 h-12 sm:mb-5 rounded-xl bg-primary-900 text-primary-500 flex items-center justify-center shrink-0">
-                  {item.icon}
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-primary-900 text-primary-500 flex items-center justify-center shrink-0">
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Horaires</p>
+                    <p className="text-sm font-semibold text-primary-800">d&apos;ouverture</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-primary-800 text-sm mb-1.5">{item.title}</h3>
-                  {item.lines.map(line => (
-                    <p key={line} className="text-stone-500 text-sm leading-relaxed">{line}</p>
-                  ))}
-                </div>
+                {hours.length > 0 ? hours.map(h => (
+                  <div key={h.day} className="flex justify-between py-2 border-b border-stone-100 last:border-0 text-sm">
+                    <span className="text-stone-500">{h.day}</span>
+                    <span className={`font-semibold ${!h.open ? 'text-stone-400' : 'text-primary-800'}`}>
+                      {fmtHours(h)}
+                    </span>
+                  </div>
+                )) : (
+                  <p className="text-sm text-stone-500">Lun – Sam : 8h00 – 18h00</p>
+                )}
               </div>
-            ))}
-          </div>
-
-          {/* Horaires */}
-          <div className="reveal max-w-sm mx-auto rounded-2xl p-6 border"
-               style={{ background: '#F9F5EE', borderColor: 'rgba(201,161,74,0.18)' }}>
-            <div className="flex items-center gap-2.5 mb-5">
-              <Clock size={15} className="text-primary-500" />
-              <h3 className="font-semibold text-primary-800 text-sm">Horaires d&apos;ouverture</h3>
             </div>
-            {hours.length > 0 ? hours.map(h => (
-              <div key={h.day} className="flex justify-between py-2.5 border-b border-stone-100 last:border-0 text-sm">
-                <span className="text-stone-500">{h.day}</span>
-                <span className={`font-semibold ${!h.open ? 'text-stone-400' : 'text-primary-800'}`}>
-                  {fmtHours(h)}
-                </span>
-              </div>
-            )) : (
-              <p className="text-sm text-stone-500">Lun – Sam : 8h00 – 18h00</p>
-            )}
+
+            {/* ── Colonne droite : formulaire ───────────────────────── */}
+            <div className="reveal delay-2 rounded-2xl border p-7 md:p-9 shadow-card"
+                 style={{ background: '#FDFAF5', borderColor: 'rgba(201,161,74,0.18)' }}>
+              <h3 className="font-serif font-semibold text-primary-800 text-xl mb-1">Envoyez-nous un message</h3>
+              <p className="text-stone-500 text-sm mb-6 leading-relaxed">
+                Réponse sous 24h en général.
+              </p>
+              <ContactForm />
+            </div>
+
           </div>
         </div>
       </section>

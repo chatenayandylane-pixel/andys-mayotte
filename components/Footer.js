@@ -120,18 +120,33 @@ export default function Footer() {
       </div>
 
       {/* ── Séparateur + bas de page ──────────────────────────── */}
-      <div className="border-t border-white/8 px-4 py-4 relative">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1">
+      <div className="border-t border-white/8 px-4 py-5 relative">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-stone-600">
             © {new Date().getFullYear()} Chez Andy&apos;s — Poroani, Mayotte. Tous droits réservés.
           </p>
-          <p className="text-stone-700" style={{ fontSize: '10px' }}>
-            SAS — SIREN&nbsp;938&nbsp;321&nbsp;536 — N°&nbsp;TVA&nbsp;FR79938321536
-          </p>
+          {/* Liens légaux */}
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <Link href="/mentions-legales" className="text-stone-600 hover:text-stone-400 transition-colors" style={{ fontSize: '10px' }}>
+              Mentions légales
+            </Link>
+            <span className="text-stone-700" style={{ fontSize: '10px' }}>·</span>
+            <Link href="/cgv" className="text-stone-600 hover:text-stone-400 transition-colors" style={{ fontSize: '10px' }}>
+              CGV
+            </Link>
+            <span className="text-stone-700" style={{ fontSize: '10px' }}>·</span>
+            <Link href="/politique-confidentialite" className="text-stone-600 hover:text-stone-400 transition-colors" style={{ fontSize: '10px' }}>
+              Confidentialité & Cookies
+            </Link>
+            <span className="text-stone-700" style={{ fontSize: '10px' }}>·</span>
+            <p className="text-stone-700" style={{ fontSize: '10px' }}>
+              SIREN&nbsp;938&nbsp;321&nbsp;536
+            </p>
+          </div>
         </div>
         <Link
           href="/admin"
-          className="absolute bottom-3.5 right-4 text-stone-800 hover:text-stone-600 transition-colors"
+          className="absolute bottom-4 right-4 text-stone-800 hover:text-stone-600 transition-colors"
           title="Administration"
           style={{ fontSize: '10px' }}
         >

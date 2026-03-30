@@ -28,18 +28,23 @@ function validateDate(dateStr) {
 }
 
 export async function GET() {
-  const rows = await sql`
-    SELECT
-      id, prenom, nom, telephone, email, date, creneau, articles,
-      total_indicatif AS "totalIndicatif",
-      status,
-      created_at  AS "createdAt",
-      validated_at AS "validatedAt",
-      invoice_id   AS "invoiceId"
-    FROM reservations
-    ORDER BY created_at DESC
-  `
-  return NextResponse.json(rows)
+  try {
+    const rows = await sql`
+      SELECT
+        id, prenom, nom, telephone, email, date, creneau, articles,
+        total_indicatif AS "totalIndicatif",
+        status,
+        created_at  AS "createdAt",
+        validated_at AS "validatedAt",
+        invoice_id   AS "invoiceId"
+      FROM reservations
+      ORDER BY created_at DESC
+    `
+    return NextResponse.json(rows)
+  } catch (err) {
+    console.error('GET /api/reservations:', err)
+    return NextResponse.json([], { status: 200 })
+  }
 }
 
 export async function POST(request) {

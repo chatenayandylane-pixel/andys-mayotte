@@ -3,6 +3,7 @@ import { CartProvider } from '@/context/CartContext'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import RevealObserver from '@/components/RevealObserver'
+import CookieBanner from '@/components/CookieBanner'
 
 export const metadata = {
   title: "Chez Andy's — Grossiste alimentaire à Mayotte",
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
           <Footer />
         </CartProvider>
         <RevealObserver />
+        <CookieBanner />
       </body>
     </html>
   )

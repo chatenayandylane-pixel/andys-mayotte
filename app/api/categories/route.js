@@ -3,8 +3,13 @@ import { sql } from '@/lib/db'
 import { verifyAdminAuth } from '@/lib/auth'
 
 export async function GET() {
-  const rows = await sql`SELECT name FROM categories ORDER BY name`
-  return NextResponse.json(rows.map(r => r.name))
+  try {
+    const rows = await sql`SELECT name FROM categories ORDER BY name`
+    return NextResponse.json(rows.map(r => r.name))
+  } catch (err) {
+    console.error('GET /api/categories:', err)
+    return NextResponse.json([], { status: 200 })
+  }
 }
 
 export async function PUT(request) {
