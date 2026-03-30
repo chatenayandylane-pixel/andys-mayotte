@@ -2,10 +2,43 @@ import Link from 'next/link'
 import { sql } from '@/lib/db'
 import ProductCard from '@/components/ProductCard'
 import ContactForm from '@/components/ContactForm'
+import ReviewForm from '@/components/ReviewForm'
 import {
   ShoppingBag, CalendarCheck, Store, CreditCard,
-  MapPin, Phone, Mail, Clock, ArrowRight, CheckCircle
+  MapPin, Phone, Mail, Clock, ArrowRight, CheckCircle, Star
 } from 'lucide-react'
+
+function ReviewCard({ review }) {
+  return (
+    <div className="bg-white rounded-2xl p-6 border border-stone-100 shadow-card flex flex-col">
+      {/* Étoiles */}
+      <div className="flex gap-0.5 mb-3">
+        {[1, 2, 3, 4, 5].map(star => (
+          <Star
+            key={star}
+            size={16}
+            fill={review.rating >= star ? '#C9A14A' : 'none'}
+            stroke={review.rating >= star ? '#C9A14A' : '#d1d5db'}
+            strokeWidth={1.5}
+          />
+        ))}
+      </div>
+      {/* Commentaire */}
+      <p className="text-stone-600 text-sm leading-relaxed flex-1 mb-4 line-clamp-4">
+        &ldquo;{review.comment}&rdquo;
+      </p>
+      {/* Auteur + date */}
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-stone-100">
+        <p className="font-semibold text-primary-800 text-sm">{review.name || review.author_name}</p>
+        {review.created_at && (
+          <p className="text-xs text-stone-400">
+            {new Date(review.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -14,11 +47,12 @@ function fmtHours(h) { return h.open ? `${fmtTime(h.openTime)} – ${fmtTime(h.c
 
 export default async function HomePage() {
   const DAY_ORDER = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche']
-  const [hoursRows, products] = await Promise.all([
+  const [hoursRows, products, reviews] = await Promise.all([
     sql`SELECT day, open, open_time AS "openTime", close_time AS "closeTime" FROM hours`.then(rows =>
       [...rows].sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day))
     ).catch(() => []),
     sql`SELECT * FROM products ORDER BY id`.catch(() => []),
+    sql`SELECT * FROM reviews WHERE approved = true ORDER BY created_at DESC LIMIT 6`.catch(() => []),
   ])
   const hours = hoursRows
   const dayOrder = [6, 0, 1, 2, 3, 4, 5]
@@ -346,6 +380,28 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          AVIS CLIENTS
+      ══════════════════════════════════════════════════════════════ */}
+      {reviews.length > 0 && (
+        <section className="py-20 md:py-28 border-t border-stone-100" style={{background: '#F7F2E8'}}>
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <span className="section-label center">Ils nous font confiance</span>
+              <h2 className="font-serif font-semibold text-primary-800" style={{fontSize:'clamp(2rem,5vw,3.25rem)'}}>
+                Avis clients
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reviews.map(review => (
+                <ReviewCard key={review.id} review={review} />
+              ))}
+            </div>
+            <ReviewForm />
+          </div>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           CTA CENTRAL

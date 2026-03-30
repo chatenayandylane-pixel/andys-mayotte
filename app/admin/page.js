@@ -5,7 +5,8 @@ import {
   Plus, Pencil, Trash2, Save, X, Lock, Package, ShoppingBag,
   Eye, EyeOff, ImagePlus, Link2, Upload, CheckCircle, Clock,
   Users, Search, AlertTriangle, FileText, ExternalLink, RefreshCw,
-  Star, Tag, CalendarDays, Sparkles,
+  Star, Tag, CalendarDays, Sparkles, BarChart2, Calendar, MessageSquare,
+  BookOpen, Download, TrendingUp, Ban,
 } from 'lucide-react'
 import { ReservationRowSkeleton, ProductTableSkeleton } from '@/components/Skeleton'
 
@@ -98,6 +99,16 @@ export default function AdminPage() {
   // Recherche produits (admin)
   const [productSearch, setProductSearch] = useState('')
 
+  // Nouvelles fonctionnalités
+  const [stats,         setStats]         = useState(null)
+  const [blockedDates,  setBlockedDates]  = useState([])
+  const [newBlockDate,  setNewBlockDate]  = useState('')
+  const [newBlockReason,setNewBlockReason]= useState('')
+  const [reviews,       setReviews]       = useState([])
+  const [posts,         setPosts]         = useState([])
+  const [editPost,      setEditPost]      = useState(null)
+  const [isNewPost,     setIsNewPost]     = useState(false)
+
   // État de chargement initial des données
   const [dataLoading, setDataLoading] = useState(true)
 
@@ -110,12 +121,20 @@ export default function AdminPage() {
       fetch('/api/invoices').then(r => r.json()).catch(() => []),
       fetch('/api/hours').then(r => r.json()).catch(() => []),
       fetch('/api/categories').then(r => r.json()).catch(() => []),
-    ]).then(([prods, reservs, invs, hrs, cats]) => {
+      fetch('/api/stats').then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch('/api/blocked-dates').then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch('/api/reviews?all=1').then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch('/api/posts?all=1').then(r => r.ok ? r.json() : []).catch(() => []),
+    ]).then(([prods, reservs, invs, hrs, cats, st, blocked, revs, ps]) => {
       setProducts(prods)
       setReservations(reservs)
       setInvoices(invs)
       setHours(hrs)
       setCategories(cats)
+      if (st) setStats(st)
+      setBlockedDates(Array.isArray(blocked) ? blocked : [])
+      setReviews(Array.isArray(revs) ? revs : [])
+      setPosts(Array.isArray(ps) ? ps : [])
     }).finally(() => setDataLoading(false))
   }
 
@@ -296,6 +315,97 @@ export default function AdminPage() {
     }
   }
 
+  // ── Export CSV des réservations ──────────────────────────────────────────────
+  const exportCSV = () => {
+    const headers = ['ID','Prénom','Nom','Email','Téléphone','Date','Créneau','Total indicatif','Statut','Créé le']
+    const rows = reservations.map(r => [
+      r.id, r.prenom, r.nom, r.email, r.telephone,
+      r.date, r.creneau, r.totalIndicatif, r.status,
+      r.createdAt ? new Date(r.createdAt).toLocaleDateString('fr-FR') : '',
+    ])
+    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url; a.download = `commandes-andys-${new Date().toISOString().slice(0,10)}.csv`
+    a.click(); URL.revokeObjectURL(url)
+  }
+
+  // ── Créneaux bloqués ─────────────────────────────────────────────────────────
+  const handleAddBlockedDate = async e => {
+    e.preventDefault()
+    if (!newBlockDate) return
+    try {
+      const res = await fetch('/api/blocked-dates', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: newBlockDate, reason: newBlockReason }),
+      })
+      if (!res.ok) throw new Error()
+      const item = await res.json()
+      setBlockedDates(prev => [...prev, item])
+      setNewBlockDate(''); setNewBlockReason('')
+      notify('Date bloquée ✓')
+    } catch { notify('Erreur lors du blocage') }
+  }
+
+  const handleDeleteBlockedDate = async id => {
+    try {
+      await fetch('/api/blocked-dates', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+      setBlockedDates(prev => prev.filter(d => d.id !== id))
+      notify('Date débloquée ✓')
+    } catch { notify('Erreur') }
+  }
+
+  // ── Modération avis ───────────────────────────────────────────────────────────
+  const handleReviewAction = async (id, approved) => {
+    try {
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved }),
+      })
+      if (!res.ok) throw new Error()
+      setReviews(prev => prev.map(r => r.id === id ? { ...r, approved } : r))
+      notify(approved ? 'Avis publié ✓' : 'Avis masqué ✓')
+    } catch { notify('Erreur') }
+  }
+
+  const handleDeleteReview = async id => {
+    if (!confirm('Supprimer cet avis ?')) return
+    try {
+      await fetch(`/api/reviews/${id}`, { method: 'DELETE' })
+      setReviews(prev => prev.filter(r => r.id !== id))
+      notify('Avis supprimé ✓')
+    } catch { notify('Erreur') }
+  }
+
+  // ── CRUD Blog ─────────────────────────────────────────────────────────────────
+  const handleSavePost = async e => {
+    e.preventDefault()
+    const method = isNewPost ? 'POST' : 'PUT'
+    const url    = isNewPost ? '/api/posts' : `/api/posts/${editPost.id}`
+    try {
+      const res = await fetch(url, {
+        method, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editPost),
+      })
+      if (!res.ok) throw new Error()
+      const saved = await res.json()
+      if (isNewPost) setPosts(prev => [saved, ...prev])
+      else           setPosts(prev => prev.map(p => p.id === saved.id ? saved : p))
+      setEditPost(null)
+      notify('Article sauvegardé ✓')
+    } catch { notify('Erreur lors de la sauvegarde') }
+  }
+
+  const handleDeletePost = async id => {
+    if (!confirm('Supprimer cet article ?')) return
+    try {
+      await fetch(`/api/posts/${id}`, { method: 'DELETE' })
+      setPosts(prev => prev.filter(p => p.id !== id))
+      notify('Article supprimé ✓')
+    } catch { notify('Erreur') }
+  }
+
   // ── Données clients (groupées par email) ────────────────────────────────────
   const clientsMap = reservations.reduce((acc, r) => {
     const key = r.email || `${r.nom}-${r.prenom}`
@@ -428,6 +538,10 @@ export default function AdminPage() {
           { id: 'categories',   label: `Catégories (${categories.length})`,                        icon: <Tag size={14} /> },
           { id: 'selection',    label: `Sélection (${products.filter(p=>p.featured).length})`,   icon: <Sparkles size={14} /> },
           { id: 'horaires',     label: 'Horaires',                                                  icon: <CalendarDays size={14} /> },
+          { id: 'stats',        label: 'Statistiques',                                              icon: <BarChart2 size={14} /> },
+          { id: 'blocked',      label: `Jours fermés (${blockedDates.length})`,                    icon: <Ban size={14} /> },
+          { id: 'reviews',      label: `Avis (${reviews.filter(r=>!r.approved).length} en attente)`, icon: <MessageSquare size={14} /> },
+          { id: 'blog',         label: `Blog (${posts.length})`,                                    icon: <BookOpen size={14} /> },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -439,6 +553,14 @@ export default function AdminPage() {
       </div>
 
       {/* ═══ Onglet Commandes ════════════════════════════════════════════════════ */}
+      {tab === 'reservations' && reservations.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <button onClick={exportCSV}
+            className="inline-flex items-center gap-2 text-sm border border-stone-200 hover:border-primary-400 text-stone-600 hover:text-primary-700 px-4 py-2 rounded-xl transition-all">
+            <Download size={14} /> Exporter CSV
+          </button>
+        </div>
+      )}
       {tab === 'reservations' && (
         dataLoading ? (
           <div className="space-y-4">
@@ -1263,6 +1385,270 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      {/* ═══ Onglet Statistiques ══════════════════════════════════════════════ */}
+      {tab === 'stats' && (
+        <div className="space-y-6">
+          {!stats ? (
+            <div className="text-center py-20 text-stone-400 text-sm">Chargement des statistiques…</div>
+          ) : (
+            <>
+              {/* KPIs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { label: 'CA total (validé)', value: `${parseFloat(stats.totalRevenue || 0).toFixed(2)} €`, icon: <TrendingUp size={18} />, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+                  { label: 'CA ce mois', value: `${parseFloat(stats.monthRevenue || 0).toFixed(2)} €`, icon: <CalendarDays size={18} />, color: 'text-primary-600', bg: 'bg-primary-50', border: 'border-primary-100' },
+                  { label: 'Panier moyen', value: `${parseFloat(stats.avgOrderValue || 0).toFixed(2)} €`, icon: <ShoppingBag size={18} />, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+                  { label: 'Total commandes', value: stats.totalReservations || 0, icon: <FileText size={18} />, color: 'text-stone-600', bg: 'bg-stone-50', border: 'border-stone-100' },
+                ].map(k => (
+                  <div key={k.label} className={`${k.bg} border ${k.border} rounded-2xl p-5`}>
+                    <div className={`${k.color} mb-3`}>{k.icon}</div>
+                    <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+                    <p className="text-xs text-stone-500 mt-1 font-medium">{k.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Top produits */}
+              {stats.topProducts?.length > 0 && (
+                <div className="bg-white rounded-2xl border border-stone-100 shadow-card overflow-hidden">
+                  <div className="px-6 py-4 border-b border-stone-100 bg-primary-50">
+                    <h3 className="font-semibold text-primary-800 text-sm">Top 5 produits commandés</h3>
+                  </div>
+                  <div className="divide-y divide-stone-50">
+                    {stats.topProducts.map((p, i) => (
+                      <div key={p.name} className="flex items-center gap-4 px-6 py-3.5">
+                        <span className="text-lg font-bold text-stone-200 w-6 text-center">{i + 1}</span>
+                        <span className="text-xl">{p.emoji}</span>
+                        <span className="flex-1 text-sm font-medium text-primary-800">{p.name}</span>
+                        <span className="text-sm font-bold text-stone-500">{p.count} fois</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Répartition statuts */}
+              <div className="bg-white rounded-2xl border border-stone-100 shadow-card p-6">
+                <h3 className="font-semibold text-primary-800 text-sm mb-4">Répartition des commandes</h3>
+                <div className="flex gap-6">
+                  {[
+                    { label: 'En attente', count: stats.pendingReservations, color: 'bg-amber-400' },
+                    { label: 'Validées', count: stats.validatedReservations, color: 'bg-emerald-400' },
+                  ].map(s => {
+                    const total = (stats.totalReservations || 1)
+                    const pct = Math.round((s.count / total) * 100)
+                    return (
+                      <div key={s.label} className="flex-1">
+                        <div className="flex justify-between text-xs text-stone-500 mb-1.5">
+                          <span>{s.label}</span>
+                          <span className="font-semibold">{s.count} ({pct}%)</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
+                          <div className={`h-full ${s.color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ═══ Onglet Jours fermés ══════════════════════════════════════════════ */}
+      {tab === 'blocked' && (
+        <div className="max-w-lg space-y-4">
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-sm text-amber-800">
+            Les dates bloquées ici seront indisponibles dans le formulaire de réservation.
+          </div>
+
+          <div className="bg-white rounded-2xl border border-stone-100 shadow-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-stone-100 bg-primary-50">
+              <h3 className="font-semibold text-primary-800 text-sm">Dates bloquées</h3>
+            </div>
+            <div className="divide-y divide-stone-50">
+              {blockedDates.length === 0 && <p className="text-center text-stone-400 text-sm py-10">Aucune date bloquée</p>}
+              {blockedDates.map(d => (
+                <div key={d.id} className="flex items-center justify-between px-6 py-3.5">
+                  <div>
+                    <p className="text-sm font-semibold text-primary-800">
+                      {new Date(d.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+                    </p>
+                    {d.reason && <p className="text-xs text-stone-400 mt-0.5">{d.reason}</p>}
+                  </div>
+                  <button onClick={() => handleDeleteBlockedDate(d.id)}
+                    className="p-1.5 rounded-lg text-stone-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="px-6 py-4 border-t border-stone-100 bg-stone-50">
+              <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Bloquer une date</p>
+              <form onSubmit={handleAddBlockedDate} className="space-y-2">
+                <input type="date" value={newBlockDate} onChange={e => setNewBlockDate(e.target.value)} required
+                  className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" />
+                <input type="text" value={newBlockReason} onChange={e => setNewBlockReason(e.target.value)}
+                  placeholder="Motif (optionnel) : Férié, congés…"
+                  className="w-full px-3 py-2 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white" />
+                <button type="submit" disabled={!newBlockDate}
+                  className="flex items-center gap-2 bg-primary-800 hover:bg-primary-700 disabled:opacity-40 text-white font-medium text-sm px-5 py-2.5 rounded-xl transition-colors w-full justify-center">
+                  <Ban size={14} /> Bloquer cette date
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Onglet Avis ══════════════════════════════════════════════════════ */}
+      {tab === 'reviews' && (
+        <div className="space-y-4">
+          {reviews.length === 0 && <div className="text-center py-20 text-stone-400">Aucun avis reçu</div>}
+          {reviews.map(r => (
+            <div key={r.id} className={`bg-white rounded-2xl border shadow-card overflow-hidden ${r.approved ? 'border-emerald-100' : 'border-amber-100'}`}>
+              <div className={`px-5 py-3 flex items-center justify-between border-b ${r.approved ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-sm text-primary-800">{r.author}</span>
+                  <span className="text-yellow-400 text-sm">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.approved ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {r.approved ? 'Publié' : 'En attente'}
+                  </span>
+                </div>
+                <span className="text-xs text-stone-400">
+                  {r.createdAt ? new Date(r.createdAt).toLocaleDateString('fr-FR') : ''}
+                </span>
+              </div>
+              <div className="px-5 py-4 flex items-start justify-between gap-4">
+                <p className="text-sm text-stone-600 leading-relaxed flex-1">{r.comment}</p>
+                <div className="flex gap-2 shrink-0">
+                  {!r.approved && (
+                    <button onClick={() => handleReviewAction(r.id, true)}
+                      className="flex items-center gap-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors">
+                      <CheckCircle size={12} /> Publier
+                    </button>
+                  )}
+                  {r.approved && (
+                    <button onClick={() => handleReviewAction(r.id, false)}
+                      className="flex items-center gap-1 text-xs bg-stone-50 hover:bg-stone-100 text-stone-600 border border-stone-200 px-3 py-1.5 rounded-lg transition-colors">
+                      <Eye size={12} /> Masquer
+                    </button>
+                  )}
+                  <button onClick={() => handleDeleteReview(r.id)}
+                    className="flex items-center gap-1 text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg transition-colors">
+                    <Trash2 size={12} /> Supprimer
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ═══ Onglet Blog ══════════════════════════════════════════════════════ */}
+      {tab === 'blog' && (
+        editPost ? (
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-3 mb-6">
+              <button onClick={() => setEditPost(null)} className="p-2 hover:bg-stone-100 rounded-xl text-stone-400 hover:text-stone-600 transition-colors">
+                <X size={16} />
+              </button>
+              <h2 className="font-serif font-semibold text-primary-800 text-xl">
+                {isNewPost ? 'Nouvel article' : 'Modifier l\'article'}
+              </h2>
+            </div>
+            <form onSubmit={handleSavePost} className="space-y-4 bg-white rounded-2xl border border-stone-100 shadow-card p-6">
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Titre *</label>
+                <input value={editPost.title || ''} onChange={e => setEditPost(p => ({ ...p, title: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }))}
+                  required placeholder="Titre de l'article"
+                  className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Slug (URL)</label>
+                <input value={editPost.slug || ''} onChange={e => setEditPost(p => ({ ...p, slug: e.target.value }))}
+                  placeholder="mon-article"
+                  className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Extrait</label>
+                <input value={editPost.excerpt || ''} onChange={e => setEditPost(p => ({ ...p, excerpt: e.target.value }))}
+                  placeholder="Courte description affichée dans la liste"
+                  className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Image (URL)</label>
+                <input value={editPost.image || ''} onChange={e => setEditPost(p => ({ ...p, image: e.target.value }))}
+                  placeholder="https://…"
+                  className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Contenu *</label>
+                <textarea value={editPost.content || ''} onChange={e => setEditPost(p => ({ ...p, content: e.target.value }))}
+                  required rows={8} placeholder="Contenu de l'article (texte simple ou HTML basique)"
+                  className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y" />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={!!editPost.published} onChange={e => setEditPost(p => ({ ...p, published: e.target.checked }))} className="w-4 h-4 accent-primary-600" />
+                <span className="text-sm font-medium text-stone-700">Publier l&apos;article</span>
+              </label>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex items-center gap-2 bg-primary-800 hover:bg-primary-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition-colors">
+                  <Save size={14} /> Enregistrer
+                </button>
+                <button type="button" onClick={() => setEditPost(null)} className="px-6 py-2.5 border border-stone-200 text-stone-600 hover:bg-stone-50 rounded-xl text-sm transition-colors">
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-end mb-6">
+              <button onClick={() => { setEditPost({ title:'',slug:'',excerpt:'',content:'',image:'',published:false }); setIsNewPost(true) }}
+                className="flex items-center gap-2 bg-primary-800 hover:bg-primary-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors">
+                <Plus size={14} /> Nouvel article
+              </button>
+            </div>
+            {posts.length === 0 ? (
+              <div className="text-center py-20 text-stone-400">
+                <BookOpen size={32} className="mx-auto mb-3 opacity-30" />
+                <p>Aucun article. Créez votre premier article !</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {posts.map(p => (
+                  <div key={p.id} className="bg-white rounded-2xl border border-stone-100 shadow-card flex items-center gap-4 px-5 py-4">
+                    {p.image && <img src={p.image} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0" onError={e => e.target.style.display='none'} />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="font-semibold text-primary-800 text-sm truncate">{p.title}</p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.published ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}`}>
+                          {p.published ? 'Publié' : 'Brouillon'}
+                        </span>
+                      </div>
+                      {p.excerpt && <p className="text-xs text-stone-400 truncate">{p.excerpt}</p>}
+                      <p className="text-xs text-stone-300 mt-1">/{p.slug}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button onClick={() => { setEditPost({ ...p }); setIsNewPost(false) }}
+                        className="p-2 rounded-lg text-stone-400 hover:text-primary-600 hover:bg-primary-50 transition-colors">
+                        <Pencil size={14} />
+                      </button>
+                      <button onClick={() => handleDeletePost(p.id)}
+                        className="p-2 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )
+      )}
+
     </div>
   )
 }

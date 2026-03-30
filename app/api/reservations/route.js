@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
-import { sendConfirmationEmail } from '@/lib/mailer'
+import { sendConfirmationEmail, sendAdminNotification } from '@/lib/mailer'
 
 // ── Rate limiting simple (par IP, max 10 réservations/heure) ─────────────────
 const rateLimitMap = new Map()
@@ -93,6 +93,12 @@ export async function POST(request) {
         articles: body.articles, total: parseFloat(body.totalIndicatif) || 0,
       }).catch(err => console.error('Erreur email confirmation:', err))
     }
+
+    sendAdminNotification({
+      reservationId, clientName: `${body.prenom} ${body.nom}`,
+      date: body.date, creneau: body.creneau,
+      articles: body.articles, total: parseFloat(body.totalIndicatif) || 0,
+    }).catch(err => console.error('Erreur notif admin:', err))
 
     return NextResponse.json({ id: reservationId, invoiceId, success: true }, { status: 201 })
   } catch (err) {

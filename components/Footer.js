@@ -90,8 +90,10 @@ export default function Footer() {
                 { href: '/',            label: 'Accueil' },
                 { href: '/produits',    label: 'Nos produits' },
                 { href: '/panier',      label: 'Mon panier' },
-                { href: '/reservation', label: 'Réserver un créneau' },
-                { href: '/#contact',    label: 'Contact' },
+                { href: '/reservation',    label: 'Réserver un créneau' },
+                { href: '/blog',           label: 'Actualités & Promos' },
+                { href: '/mes-commandes',  label: 'Mes commandes' },
+                { href: '/#contact',       label: 'Contact' },
               ].map(link => (
                 <li key={link.href}>
                   <Link

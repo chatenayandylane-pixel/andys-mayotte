@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import Link from 'next/link'
@@ -44,6 +44,11 @@ export default function ReservationPage() {
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [blockedDates, setBlockedDates] = useState([])
+
+  useEffect(() => {
+    fetch('/api/blocked-dates').then(r => r.json()).then(d => setBlockedDates(Array.isArray(d) ? d.map(x => x.date) : [])).catch(() => {})
+  }, [])
 
   const handleChange = e => {
     const { name, value } = e.target
@@ -67,6 +72,7 @@ export default function ReservationPage() {
     if (form.date) {
       const d = new Date(form.date + 'T00:00:00')
       if (d.getDay() === 0) newErrors.date = 'Nous sommes fermés le dimanche'
+      if (blockedDates.includes(form.date)) newErrors.date = 'Cette date est indisponible (fermeture exceptionnelle)'
     }
     return newErrors
   }

@@ -4,6 +4,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import RevealObserver from '@/components/RevealObserver'
 import CookieBanner from '@/components/CookieBanner'
+import WhatsAppButton from '@/components/WhatsAppButton'
 
 export const metadata = {
   title: "Chez Andy's — Grossiste alimentaire à Mayotte",
@@ -11,6 +12,9 @@ export const metadata = {
     "Commandez vos produits alimentaires en gros chez Andy's à Poroani, Mayotte. Réservez en ligne, venez récupérer et payez sur place.",
   keywords: "grossiste, alimentaire, Mayotte, Poroani, réservation, commande",
   metadataBase: new URL('https://chezandys.com'),
+  themeColor: '#0a2618',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: "Andy's" },
 }
 
 export default function RootLayout({ children }) {
@@ -27,6 +31,7 @@ export default function RootLayout({ children }) {
         </CartProvider>
         <RevealObserver />
         <CookieBanner />
+        <WhatsAppButton />
       </body>
     </html>
   )

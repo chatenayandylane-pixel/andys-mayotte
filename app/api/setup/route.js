@@ -82,6 +82,37 @@ export async function POST(request) {
         name TEXT PRIMARY KEY
       )
     `
+    await sql`
+      CREATE TABLE IF NOT EXISTS blocked_dates (
+        id         SERIAL PRIMARY KEY,
+        date       TEXT NOT NULL UNIQUE,
+        reason     TEXT DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `
+    await sql`
+      CREATE TABLE IF NOT EXISTS reviews (
+        id         SERIAL PRIMARY KEY,
+        author     TEXT    NOT NULL,
+        rating     INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment    TEXT    NOT NULL,
+        approved   BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `
+    await sql`
+      CREATE TABLE IF NOT EXISTS posts (
+        id         SERIAL PRIMARY KEY,
+        title      TEXT NOT NULL,
+        slug       TEXT NOT NULL UNIQUE,
+        excerpt    TEXT DEFAULT '',
+        content    TEXT DEFAULT '',
+        image      TEXT DEFAULT '',
+        published  BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `
 
     // ── 2. Importer les produits ────────────────────────────────────────────
     const products = readJson('products')
