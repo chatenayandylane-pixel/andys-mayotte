@@ -10,6 +10,9 @@ export async function PATCH(request, { params }) {
   }
   try {
     const { id } = params
+    const body = await request.json().catch(() => ({}))
+    const issuedAt = body?.issuedAt || null
+    const paidAt   = body?.paidAt   || null
 
     const rows = await sql`
       SELECT
@@ -53,11 +56,31 @@ export async function PATCH(request, { params }) {
     `
 
     if (reservation.invoiceId) {
-      await sql`
-        UPDATE invoices
-        SET status = 'payee'
-        WHERE id = ${reservation.invoiceId}
-      `
+      if (issuedAt && paidAt) {
+        await sql`
+          UPDATE invoices
+          SET status = 'payee', created_at = ${issuedAt}, paid_at = ${paidAt}
+          WHERE id = ${reservation.invoiceId}
+        `
+      } else if (paidAt) {
+        await sql`
+          UPDATE invoices
+          SET status = 'payee', paid_at = ${paidAt}
+          WHERE id = ${reservation.invoiceId}
+        `
+      } else if (issuedAt) {
+        await sql`
+          UPDATE invoices
+          SET status = 'payee', created_at = ${issuedAt}, paid_at = NOW()
+          WHERE id = ${reservation.invoiceId}
+        `
+      } else {
+        await sql`
+          UPDATE invoices
+          SET status = 'payee', paid_at = NOW()
+          WHERE id = ${reservation.invoiceId}
+        `
+      }
     }
 
     if (reservation.email && reservation.invoiceId) {

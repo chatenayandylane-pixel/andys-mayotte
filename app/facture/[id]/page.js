@@ -104,10 +104,18 @@ export default async function FacturePage({ params }) {
                 )}
               </div>
               <div className="bg-stone-50 rounded-xl p-4">
-                <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Détails retrait</p>
-                <p className="text-sm text-stone-600">
-                  <span className="font-medium text-stone-700">Réservation :</span> {invoice.reservationId}
+                <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">
+                  {invoice.reservationId ? 'Détails retrait' : 'Détails'}
                 </p>
+                {invoice.reservationId ? (
+                  <p className="text-sm text-stone-600">
+                    <span className="font-medium text-stone-700">Réservation :</span> {invoice.reservationId}
+                  </p>
+                ) : (
+                  <p className="text-sm text-stone-600">
+                    <span className="font-medium text-stone-700">Type :</span> Vente directe
+                  </p>
+                )}
                 {invoice.reservationDate && (
                   <p className="text-sm text-stone-600 mt-1">
                     <span className="font-medium text-stone-700">Date :</span> {formatDate(invoice.reservationDate)}

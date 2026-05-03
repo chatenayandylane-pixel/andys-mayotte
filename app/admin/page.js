@@ -112,6 +112,13 @@ export default function AdminPage() {
   // État de chargement initial des données
   const [dataLoading, setDataLoading] = useState(true)
 
+  // Modal de dates (validation paiement / édition facture)
+  // shape: { mode: 'validate'|'edit', reservationId?, invoiceId, issuedDate, paidDate, isPaid, saving }
+  const [dateModal, setDateModal] = useState(null)
+
+  // Modal de création de facture manuelle
+  const [createModal, setCreateModal] = useState(null)
+
   // ── Chargement des données ──────────────────────────────────────────────────
   const loadData = (showLoader = false) => {
     if (showLoader) setDataLoading(true)
@@ -264,24 +271,216 @@ export default function AdminPage() {
     }
   }
 
-  // ── Valider le paiement d'une réservation ────────────────────────────────────
-  const handleValidatePayment = async (reservationId) => {
-    if (!confirm('Confirmer la validation du paiement ? Le stock sera mis à jour et la facture envoyée par email.')) return
-    setLoadingId(reservationId)
+  // ── Helpers dates pour le modal ──────────────────────────────────────────────
+  const toDateInput = (iso) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return ''
+    const yyyy = d.getFullYear()
+    const mm   = String(d.getMonth() + 1).padStart(2, '0')
+    const dd   = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+  const todayInput = () => toDateInput(new Date().toISOString())
+  const dateInputToISO = (s) => {
+    if (!s) return null
+    // Date saisie → on garde l'heure courante locale pour un timestamp réaliste
+    const now = new Date()
+    const d = new Date(`${s}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`)
+    return d.toISOString()
+  }
+
+  // ── Ouvrir le modal pour valider le paiement d'une réservation ───────────────
+  const openValidateModal = (reservation) => {
+    const inv = invoices.find(i => i.id === reservation.invoiceId)
+    setDateModal({
+      mode: 'validate',
+      reservationId: reservation.id,
+      invoiceId: reservation.invoiceId,
+      issuedDate: toDateInput(inv?.createdAt) || todayInput(),
+      paidDate: todayInput(),
+      isPaid: false,
+      saving: false,
+    })
+  }
+
+  // ── Ouvrir le modal pour modifier les dates d'une facture existante ──────────
+  const openEditInvoiceModal = (inv) => {
+    setDateModal({
+      mode: 'edit',
+      invoiceId: inv.id,
+      issuedDate: toDateInput(inv.createdAt) || todayInput(),
+      paidDate: toDateInput(inv.paidAt) || todayInput(),
+      isPaid: inv.status === 'payee',
+      saving: false,
+    })
+  }
+
+  // ── Soumettre le modal ───────────────────────────────────────────────────────
+  const submitDateModal = async () => {
+    if (!dateModal) return
+    setDateModal(m => ({ ...m, saving: true }))
+    const issuedAt = dateInputToISO(dateModal.issuedDate)
+    const paidAt   = dateModal.isPaid || dateModal.mode === 'validate'
+      ? dateInputToISO(dateModal.paidDate)
+      : null
+
     try {
-      const res = await fetch(`/api/reservations/${reservationId}`, { method: 'PATCH' })
-      if (!res.ok) {
-        const err = await res.json()
-        alert(err.error || 'Erreur serveur')
-        return
+      if (dateModal.mode === 'validate') {
+        setLoadingId(dateModal.reservationId)
+        const res = await fetch(`/api/reservations/${dateModal.reservationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ issuedAt, paidAt }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          alert(err.error || 'Erreur serveur')
+          return
+        }
+        notify('Paiement validé ✓ — Facture envoyée par email')
+      } else {
+        const res = await fetch('/api/invoices', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: dateModal.invoiceId, issuedAt, paidAt }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          alert(err.error || 'Erreur serveur')
+          return
+        }
+        notify('Dates de la facture mises à jour ✓')
       }
-      // Recharger les données
+      setDateModal(null)
       loadData()
-      notify('Paiement validé ✓ — Facture envoyée par email')
     } catch {
-      notify('Erreur lors de la validation')
+      notify('Erreur lors de l\'enregistrement')
     } finally {
       setLoadingId(null)
+      setDateModal(m => m ? { ...m, saving: false } : null)
+    }
+  }
+
+  // ── Création manuelle de facture ─────────────────────────────────────────────
+  const openCreateInvoiceModal = () => {
+    setCreateModal({
+      clientPrenom: '', clientNom: '', clientEmail: '', clientTelephone: '',
+      articles: [{ name: '', quantity: 1, price: '', unit: '' }],
+      status: 'en_attente',
+      issuedDate: todayInput(),
+      paidDate: todayInput(),
+      saving: false,
+    })
+  }
+
+  const updateCreateField = (key, value) => {
+    setCreateModal(m => ({ ...m, [key]: value }))
+  }
+
+  const updateCreateArticle = (idx, key, value) => {
+    setCreateModal(m => {
+      const next = [...m.articles]
+      next[idx] = { ...next[idx], [key]: value }
+      return { ...m, articles: next }
+    })
+  }
+
+  // Sélection d'un produit du catalogue pour pré-remplir un article
+  const selectProductForArticle = (idx, productId) => {
+    setCreateModal(m => {
+      const next = [...m.articles]
+      const current = next[idx]
+      if (productId === '__custom__') {
+        next[idx] = { ...current, productId: '__custom__', name: '', price: '', unit: '' }
+      } else if (productId === '') {
+        next[idx] = { ...current, productId: '', name: '', price: '', unit: '' }
+      } else {
+        const p = products.find(pr => String(pr.id) === String(productId))
+        if (p) {
+          next[idx] = {
+            ...current,
+            productId: String(productId),
+            name: p.name,
+            price: String(p.price ?? ''),
+            unit: p.unit || '',
+          }
+        }
+      }
+      return { ...m, articles: next }
+    })
+  }
+
+  const addCreateArticle = () => {
+    setCreateModal(m => ({
+      ...m,
+      articles: [...m.articles, { name: '', quantity: 1, price: '', emoji: '', unit: '' }],
+    }))
+  }
+
+  const removeCreateArticle = (idx) => {
+    setCreateModal(m => ({
+      ...m,
+      articles: m.articles.length > 1 ? m.articles.filter((_, i) => i !== idx) : m.articles,
+    }))
+  }
+
+  const computeCreateTotal = () => {
+    if (!createModal) return 0
+    return createModal.articles.reduce(
+      (s, a) => s + (parseFloat(a.price) || 0) * (parseInt(a.quantity) || 0),
+      0
+    )
+  }
+
+  const submitCreateInvoice = async () => {
+    if (!createModal) return
+    if (!createModal.clientPrenom.trim() || !createModal.clientNom.trim()) {
+      alert('Prénom et nom du client requis')
+      return
+    }
+    const validArticles = createModal.articles.filter(
+      a => a.name.trim() && parseInt(a.quantity) > 0
+    )
+    if (validArticles.length === 0) {
+      alert('Ajoute au moins un article (avec un nom et une quantité)')
+      return
+    }
+
+    setCreateModal(m => ({ ...m, saving: true }))
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientPrenom: createModal.clientPrenom.trim(),
+          clientNom: createModal.clientNom.trim(),
+          clientEmail: createModal.clientEmail.trim() || null,
+          clientTelephone: createModal.clientTelephone.trim() || null,
+          articles: validArticles.map(a => ({
+            name: a.name.trim(),
+            quantity: parseInt(a.quantity) || 0,
+            price: parseFloat(a.price) || 0,
+            unit: a.unit?.trim() || '',
+          })),
+          status: createModal.status,
+          issuedAt: dateInputToISO(createModal.issuedDate),
+          paidAt: createModal.status === 'payee' ? dateInputToISO(createModal.paidDate) : null,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(err.error || 'Erreur serveur')
+        setCreateModal(m => ({ ...m, saving: false }))
+        return
+      }
+      const data = await res.json()
+      setCreateModal(null)
+      loadData()
+      notify(`Facture ${data.id} créée ✓`)
+    } catch {
+      notify('Erreur lors de la création')
+      setCreateModal(m => m ? { ...m, saving: false } : null)
     }
   }
 
@@ -634,7 +833,7 @@ export default function AdminPage() {
                     {/* Valider paiement */}
                     {r.status === 'en_attente' ? (
                       <button
-                        onClick={() => handleValidatePayment(r.id)}
+                        onClick={() => openValidateModal(r)}
                         disabled={loadingId === r.id}
                         className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 text-white px-4 py-2 rounded-xl transition-colors"
                       >
@@ -669,10 +868,26 @@ export default function AdminPage() {
         invoices.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-5xl mb-4">🧾</p>
-            <p className="text-stone-400 font-serif text-xl">Aucune facture pour le moment</p>
+            <p className="text-stone-400 font-serif text-xl mb-6">Aucune facture pour le moment</p>
+            <button
+              onClick={openCreateInvoiceModal}
+              className="inline-flex items-center gap-2 bg-primary-800 hover:bg-primary-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <Plus size={15} /> Créer une facture
+            </button>
           </div>
         ) : (
           <>
+            {/* Bouton créer */}
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={openCreateInvoiceModal}
+                className="inline-flex items-center gap-2 bg-primary-800 hover:bg-primary-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-colors"
+              >
+                <Plus size={15} /> Nouvelle facture
+              </button>
+            </div>
+
             {/* Résumé */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
               <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
@@ -739,6 +954,12 @@ export default function AdminPage() {
                           >
                             <FileText size={12} /> Voir
                           </a>
+                          <button
+                            onClick={() => openEditInvoiceModal(inv)}
+                            className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg transition-colors border border-amber-100"
+                          >
+                            <Calendar size={12} /> Dates
+                          </button>
                           <button
                             onClick={() => handleDeleteInvoice(inv.id)}
                             className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2.5 py-1.5 rounded-lg transition-colors border border-red-100"
@@ -1647,6 +1868,336 @@ export default function AdminPage() {
             )}
           </>
         )
+      )}
+
+      {/* ═══ Modal dates (validation paiement / édition facture) ════════════════ */}
+      {dateModal && (
+        <div
+          className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => !dateModal.saving && setDateModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl border border-stone-200 w-full max-w-md p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-serif text-xl font-semibold text-primary-800">
+                {dateModal.mode === 'validate' ? 'Valider le paiement' : 'Modifier les dates'}
+              </h2>
+              <button
+                onClick={() => setDateModal(null)}
+                disabled={dateModal.saving}
+                className="text-stone-400 hover:text-stone-600 disabled:opacity-30"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {dateModal.mode === 'validate' && (
+              <p className="text-sm text-stone-500 mb-5">
+                Choisis les dates qui apparaîtront sur la facture, puis confirme.
+                Le stock sera mis à jour et la facture envoyée par email.
+              </p>
+            )}
+
+            {/* Date d'émission */}
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+                Date d&apos;émission
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={dateModal.issuedDate}
+                  onChange={e => setDateModal(m => ({ ...m, issuedDate: e.target.value }))}
+                  className="flex-1 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setDateModal(m => ({ ...m, issuedDate: todayInput() }))}
+                  className="text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-100 px-3 rounded-xl transition-colors whitespace-nowrap"
+                >
+                  Aujourd&apos;hui
+                </button>
+              </div>
+            </div>
+
+            {/* Date de paiement (modifiable seulement si payée ou en cours de validation) */}
+            {(dateModal.mode === 'validate' || dateModal.isPaid) && (
+              <div className="mb-5">
+                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+                  Date de paiement
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={dateModal.paidDate}
+                    onChange={e => setDateModal(m => ({ ...m, paidDate: e.target.value }))}
+                    className="flex-1 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDateModal(m => ({ ...m, paidDate: todayInput() }))}
+                    className="text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-100 px-3 rounded-xl transition-colors whitespace-nowrap"
+                  >
+                    Aujourd&apos;hui
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {dateModal.mode === 'edit' && !dateModal.isPaid && (
+              <p className="text-xs text-stone-400 italic mb-5">
+                Cette facture est en attente de paiement — seule la date d&apos;émission est modifiable.
+              </p>
+            )}
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDateModal(null)}
+                disabled={dateModal.saving}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-100 disabled:opacity-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitDateModal}
+                disabled={dateModal.saving || !dateModal.issuedDate}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-primary-700 hover:bg-primary-800 disabled:bg-stone-300 transition-colors"
+              >
+                {dateModal.saving && (
+                  <span className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                )}
+                {dateModal.mode === 'validate' ? 'Valider le paiement' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Modal création de facture manuelle ═════════════════════════════════ */}
+      {createModal && (
+        <div
+          className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => !createModal.saving && setCreateModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl border border-stone-200 w-full max-w-2xl my-8"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-stone-100">
+              <h2 className="font-serif text-xl font-semibold text-primary-800">Nouvelle facture</h2>
+              <button
+                onClick={() => setCreateModal(null)}
+                disabled={createModal.saving}
+                className="text-stone-400 hover:text-stone-600 disabled:opacity-30"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-6">
+
+              {/* Section Client */}
+              <div>
+                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Client</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Prénom *"
+                    value={createModal.clientPrenom}
+                    onChange={e => updateCreateField('clientPrenom', e.target.value)}
+                    className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nom *"
+                    value={createModal.clientNom}
+                    onChange={e => updateCreateField('clientNom', e.target.value)}
+                    className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email (optionnel)"
+                    value={createModal.clientEmail}
+                    onChange={e => updateCreateField('clientEmail', e.target.value)}
+                    className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Téléphone (optionnel)"
+                    value={createModal.clientTelephone}
+                    onChange={e => updateCreateField('clientTelephone', e.target.value)}
+                    className="border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              {/* Section Articles */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Articles</p>
+                  <button
+                    type="button"
+                    onClick={addCreateArticle}
+                    className="text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-100 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <Plus size={12} /> Ajouter
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {createModal.articles.map((a, idx) => (
+                    <div key={idx} className="bg-stone-50 border border-stone-100 rounded-xl p-3 space-y-2">
+                      {/* Ligne 1 : choix produit + supprimer */}
+                      <div className="flex gap-2 items-center">
+                        <select
+                          value={a.productId || ''}
+                          onChange={e => selectProductForArticle(idx, e.target.value)}
+                          className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">— Choisir un produit du catalogue —</option>
+                          {products.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}{p.unit ? ` (${p.unit})` : ''} — {parseFloat(p.price || 0).toFixed(2)} €
+                            </option>
+                          ))}
+                          <option value="__custom__">✏️ Article personnalisé (hors catalogue)</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeCreateArticle(idx)}
+                          disabled={createModal.articles.length === 1}
+                          className="text-red-400 hover:text-red-600 disabled:opacity-20 disabled:cursor-not-allowed p-2"
+                          title="Supprimer cette ligne"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      {/* Ligne 2 : champ nom personnalisé (si applicable) */}
+                      {a.productId === '__custom__' && (
+                        <input
+                          type="text"
+                          placeholder="Nom de l'article personnalisé *"
+                          value={a.name}
+                          onChange={e => updateCreateArticle(idx, 'name', e.target.value)}
+                          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      )}
+
+                      {/* Ligne 3 : qté / prix / unité (visible dès qu'un produit OU custom est sélectionné) */}
+                      {a.productId && (
+                        <div className="grid grid-cols-12 gap-2 items-center">
+                          <div className="col-span-3">
+                            <label className="block text-[10px] font-medium text-stone-400 uppercase mb-0.5">Qté</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={a.quantity}
+                              onChange={e => updateCreateArticle(idx, 'quantity', e.target.value)}
+                              className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <label className="block text-[10px] font-medium text-stone-400 uppercase mb-0.5">Prix unitaire €</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={a.price}
+                              onChange={e => updateCreateArticle(idx, 'price', e.target.value)}
+                              className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                          <div className="col-span-3">
+                            <label className="block text-[10px] font-medium text-stone-400 uppercase mb-0.5">Unité</label>
+                            <input
+                              type="text"
+                              placeholder="carton, pack…"
+                              value={a.unit}
+                              onChange={e => updateCreateArticle(idx, 'unit', e.target.value)}
+                              className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                          <div className="col-span-2 text-right">
+                            <label className="block text-[10px] font-medium text-stone-400 uppercase mb-0.5">Sous-total</label>
+                            <p className="text-sm font-bold text-primary-800 py-1.5">
+                              {((parseFloat(a.price) || 0) * (parseInt(a.quantity) || 0)).toFixed(2)} €
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex justify-end text-sm">
+                  <span className="text-stone-500 mr-2">Total :</span>
+                  <span className="font-bold text-primary-800">{computeCreateTotal().toFixed(2)} €</span>
+                </div>
+              </div>
+
+              {/* Section Statut + Dates */}
+              <div>
+                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Statut & dates</p>
+
+                <label className="flex items-center gap-2 mb-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={createModal.status === 'payee'}
+                    onChange={e => updateCreateField('status', e.target.checked ? 'payee' : 'en_attente')}
+                    className="w-4 h-4 rounded border-stone-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-stone-700">Facture déjà payée</span>
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-stone-500 mb-1">Date d&apos;émission</label>
+                    <input
+                      type="date"
+                      value={createModal.issuedDate}
+                      onChange={e => updateCreateField('issuedDate', e.target.value)}
+                      className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  {createModal.status === 'payee' && (
+                    <div>
+                      <label className="block text-xs font-medium text-stone-500 mb-1">Date de paiement</label>
+                      <input
+                        type="date"
+                        value={createModal.paidDate}
+                        onChange={e => updateCreateField('paidDate', e.target.value)}
+                        className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end px-6 py-4 border-t border-stone-100 bg-stone-50 rounded-b-2xl">
+              <button
+                onClick={() => setCreateModal(null)}
+                disabled={createModal.saving}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-100 disabled:opacity-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={submitCreateInvoice}
+                disabled={createModal.saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-primary-700 hover:bg-primary-800 disabled:bg-stone-300 transition-colors"
+              >
+                {createModal.saving && (
+                  <span className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                )}
+                Créer la facture
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
