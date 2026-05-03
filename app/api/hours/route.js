@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
 import { verifyAdminAuth } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 const DAY_ORDER = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche']
 const TIME_RE   = /^\d{2}:\d{2}$/
 
