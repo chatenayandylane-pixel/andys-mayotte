@@ -30,3 +30,5 @@ Thumbs.db
 
 # Les fichiers data sont versionnés (état initial)
 # Ils seront écrasés sur le serveur par les données réelles
+
+.vercel

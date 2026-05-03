@@ -1,0 +1,52 @@
+# Chez Andy's — Grossiste alimentaire à Mayotte
+
+> Grossiste alimentaire situé à Poroani, Mayotte (976). Réservation en ligne, retrait en magasin, paiement sur place. Prix de gros sur produits frais, secs et boissons.
+
+Chez Andy's est un grossiste alimentaire familial à Poroani (Mayotte). Le site permet aux clients particuliers et professionnels de **réserver en ligne** leurs produits parmi un large catalogue, puis de venir **récupérer en magasin** au moment de leur choix et de **payer sur place**. Aucun paiement en ligne — modèle simple et sans frais cachés.
+
+## Coordonnées
+
+- Enseigne : Chez Andy's
+- Adresse : Poroani, Chirongui, 97620 Mayotte, France
+- Coordonnées GPS : -12.8920760, 45.1419095
+- Site web : https://chezandys.com
+- Modèle : grossiste — réservation en ligne, retrait + paiement en magasin
+
+## Comment ça fonctionne
+
+1. Le client parcourt le catalogue sur https://chezandys.com/produits
+2. Il ajoute les articles à son panier
+3. Il choisit un créneau de retrait via https://chezandys.com/reservation
+4. Il valide la réservation (sans paiement)
+5. Il vient récupérer ses produits en magasin et paie sur place (espèces ou CB)
+
+## Catalogue
+
+Le catalogue est mis à jour en temps réel par l'équipe Andy's. Il couvre généralement : produits secs (riz, pâtes, conserves, épicerie), boissons, frais selon arrivage. Les promotions sont indiquées par un badge rouge sur les fiches produits.
+
+Pour la liste exacte et les prix actuels, consulter https://chezandys.com/produits.
+
+## Pages du site
+
+- `/` : accueil avec présentation, produits phares, témoignages, contact
+- `/produits` : catalogue complet avec recherche et filtres par catégorie
+- `/produits/[id]` : fiche détaillée par produit
+- `/reservation` : prise de rendez-vous pour le retrait
+- `/panier` : panier de réservation
+- `/blog` : actualités et conseils
+- `/blog/[slug]` : articles individuels
+- `/mes-commandes` : suivi des réservations en cours (côté client)
+- `/cgv` : conditions générales de vente
+- `/mentions-legales` : mentions légales
+- `/politique-confidentialite` : politique RGPD
+
+## Atouts
+
+- **Prix de gros** sans intermédiaire
+- **Réservation simple** en ligne, paiement en magasin
+- **Pas de frais de livraison** (retrait obligatoire)
+- **Stock à jour** en temps réel sur le site
+
+## Mots-clés associés
+
+grossiste alimentaire Mayotte, grossiste Poroani, réservation produits Mayotte, alimentaire en gros 976, achat en gros particuliers Mayotte, retrait magasin Poroani, Andy's Mayotte, prix grossiste alimentaire, courses en gros Mayotte.

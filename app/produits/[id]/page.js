@@ -7,12 +7,74 @@ import { ArrowLeft, Tag, Package } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
+async function fetchProduct(id) {
+  const rows = await sql`SELECT * FROM products WHERE id = ${id}`.catch(() => null)
+  if (!rows || rows.length === 0) return null
+  return Array.isArray(rows) ? rows[0] : rows
+}
+
+export async function generateMetadata({ params }) {
+  const p = await fetchProduct(params.id)
+  if (!p) return { title: 'Produit introuvable' }
+  const url = `https://chezandys.com/produits/${p.id}`
+  const title = `${p.name} — ${parseFloat(p.price).toFixed(2)} €${p.unit ? ' / ' + p.unit : ''}`
+  const description = (p.description || `${p.name} disponible chez Andy's, grossiste alimentaire à Poroani, Mayotte. Réservation en ligne, retrait en magasin.`).slice(0, 160)
+  return {
+    title,
+    description,
+    alternates: { canonical: `/produits/${p.id}` },
+    openGraph: {
+      type: 'website',
+      url,
+      title,
+      description,
+      images: p.image ? [{ url: p.image, alt: p.name }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: p.image ? [p.image] : undefined,
+    },
+  }
+}
+
 export default async function ProductPage({ params }) {
-  const product = await sql`SELECT * FROM products WHERE id = ${params.id}`.catch(() => null)
+  const p = await fetchProduct(params.id)
+  if (!p) notFound()
 
-  if (!product || product.length === 0) notFound()
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    '@id': `https://chezandys.com/produits/${p.id}#product`,
+    name: p.name,
+    description: p.description || `${p.name} — disponible chez Andy's, grossiste alimentaire à Poroani, Mayotte.`,
+    image: p.image ? [p.image] : ['https://chezandys.com/logo.png'],
+    sku: String(p.id),
+    category: p.category || 'Alimentaire',
+    brand: { '@type': 'Brand', name: "Chez Andy's" },
+    offers: {
+      '@type': 'Offer',
+      url: `https://chezandys.com/produits/${p.id}`,
+      priceCurrency: 'EUR',
+      price: parseFloat(p.price).toFixed(2),
+      availability: p.available
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+      seller: { '@type': 'Organization', name: "Chez Andy's", url: 'https://chezandys.com' },
+    },
+  }
 
-  const p = Array.isArray(product) ? product[0] : product
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://chezandys.com/' },
+      { '@type': 'ListItem', position: 2, name: 'Produits', item: 'https://chezandys.com/produits' },
+      { '@type': 'ListItem', position: 3, name: p.name, item: `https://chezandys.com/produits/${p.id}` },
+    ],
+  }
 
   const relatedProducts = await sql`
     SELECT * FROM products
@@ -26,6 +88,14 @@ export default async function ProductPage({ params }) {
 
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
 
       {/* ── Header breadcrumb ─────────────────────────────────── */}
       <div
