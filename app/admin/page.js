@@ -233,7 +233,10 @@ export default function AdminPage() {
   }
 
   const handleEdit = p => { setEditProduct({ ...p }); setIsNew(false); setImgMode('url') }
-  const handleNew  = ()  => { setEditProduct({ ...EMPTY_PRODUCT, id: Date.now() }); setIsNew(true); setImgMode('url') }
+  const handleNew  = ()  => {
+    const maxId = products.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0)
+    setEditProduct({ ...EMPTY_PRODUCT, id: maxId + 1 }); setIsNew(true); setImgMode('url')
+  }
 
   const handleSave = e => {
     e.preventDefault()
