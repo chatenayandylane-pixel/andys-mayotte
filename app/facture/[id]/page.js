@@ -1,6 +1,6 @@
 import { sql } from '@/lib/db'
 import { notFound } from 'next/navigation'
-import PrintButton from './PrintButton'
+import InvoiceActions from './InvoiceActions'
 import LogoImg from './LogoImg'
 
 export const dynamic = 'force-dynamic'
@@ -49,12 +49,12 @@ export default async function FacturePage({ params }) {
             {isPaid ? 'PAYÉE' : 'EN ATTENTE'}
           </span>
         </p>
-        <PrintButton />
+        <InvoiceActions invoiceId={invoice.id} />
       </div>
 
       {/* Corps de la facture — max-w limité pour ressembler à un document A4 */}
       <div className="max-w-[780px] mx-auto my-10 px-4 print:my-0 print:px-0">
-        <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden print:rounded-none print:border-0 shadow-card print:shadow-none">
+        <div id="invoice-content" className="bg-white border border-stone-200 rounded-2xl overflow-hidden print:rounded-none print:border-0 shadow-card print:shadow-none">
 
           {/* ── En-tête : logo + infos entreprise + numéro facture ── */}
           <div className="px-8 pt-8 pb-6 flex items-start justify-between gap-6 border-b border-stone-100">
